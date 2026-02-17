@@ -1,6 +1,6 @@
 # Digital Twin of the Stomach
 
-A comprehensive, production-ready web application for **bariatric surgery planning** and **drug response simulation** using patient-specific 3D models.
+A comprehensive, production-ready web application for **bariatric surgery planning**  using patient-specific 3D models.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-green.svg)
