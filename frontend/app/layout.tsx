@@ -9,6 +9,10 @@ export const metadata: Metadata = {
     title: 'BariatSim | Bariatric Surgery Planning',
     description: 'Patient-specific digital twin platform for bariatric surgery planning and drug response simulation.',
     keywords: ['digital twin', 'stomach', 'bariatric surgery', 'medical simulation', 'FEM'],
+    icons: {
+        icon: '/favicon.ico',
+        apple: '/apple-icon.png',
+    },
 };
 
 export default function RootLayout({

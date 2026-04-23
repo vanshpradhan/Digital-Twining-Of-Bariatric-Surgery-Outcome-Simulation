@@ -176,14 +176,16 @@ function InternalVeins() {
             {veins.map((curve, i) => {
                 const points = curve.getPoints(30);
                 const geo = new THREE.BufferGeometry().setFromPoints(points);
+                const line = new THREE.Line(
+                    geo,
+                    new THREE.LineBasicMaterial({
+                        color: i % 3 === 0 ? '#00ffcc' : i % 3 === 1 ? '#00aaff' : '#6644ff',
+                        transparent: true,
+                        opacity: 0.25
+                    })
+                );
                 return (
-                    <line key={i} geometry={geo}>
-                        <lineBasicMaterial
-                            color={i % 3 === 0 ? '#00ffcc' : i % 3 === 1 ? '#00aaff' : '#6644ff'}
-                            transparent
-                            opacity={0.25}
-                        />
-                    </line>
+                    <primitive key={i} object={line} />
                 );
             })}
         </group>
@@ -280,10 +282,16 @@ function NetworkLines() {
         <group ref={linesRef}>
             {lines.map((pair, i) => {
                 const geo = new THREE.BufferGeometry().setFromPoints(pair);
+                const line = new THREE.Line(
+                    geo,
+                    new THREE.LineBasicMaterial({
+                        color: '#1a5faa',
+                        transparent: true,
+                        opacity: 0.08
+                    })
+                );
                 return (
-                    <line key={i} geometry={geo}>
-                        <lineBasicMaterial color="#1a5faa" transparent opacity={0.08} />
-                    </line>
+                    <primitive key={i} object={line} />
                 );
             })}
         </group>

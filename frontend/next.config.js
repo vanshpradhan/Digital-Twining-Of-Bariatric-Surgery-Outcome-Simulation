@@ -4,6 +4,13 @@ const nextConfig = {
     images: {
         domains: ['localhost'],
     },
+    webpack(config, { dev }) {
+        if (dev) {
+            // Prevent stale .next/server chunk-map reuse that can trigger missing chunk modules in dev.
+            config.cache = false;
+        }
+        return config;
+    },
     async rewrites() {
         return [
             {

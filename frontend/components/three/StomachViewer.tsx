@@ -1,214 +1,193 @@
 'use client';
 
-import { Suspense, useRef, useState, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment, Float, Html } from '@react-three/drei';
+import { Suspense, useMemo } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
+import AnatomicalStomachModel from './AnatomicalStomachModel';
 
-interface StomachModelProps {
-    stressData?: number[];
-    showStress: boolean;
-    wireframe: boolean;
-}
+/* ───────────────────────────────────────────────
+   Staple-line path per surgery type
+   ─────────────────────────────────────────────── */
 
-function StomachModel({ stressData, showStress, wireframe }: StomachModelProps) {
-    const meshRef = useRef<THREE.Mesh>(null);
-
-    // Create stomach-like geometry
+function SleeveStapleLine() {
     const geometry = useMemo(() => {
-        const shape = new THREE.Shape();
-
-        // Create stomach profile
-        shape.moveTo(0, 0);
-        shape.bezierCurveTo(2, 0, 3, 1, 3, 2);  // Fundus
-        shape.bezierCurveTo(3, 3, 2, 4, 1.5, 4.5);  // Body
-        shape.bezierCurveTo(1, 5, 0.5, 5.5, 0, 5.5);  // Antrum
-
-        const latheGeometry = new THREE.LatheGeometry(
-            shape.getPoints(32),
-            32,
-            0,
-            Math.PI * 2
-        );
-
-        // Scale and center
-        latheGeometry.scale(0.4, 0.4, 0.4);
-        latheGeometry.translate(0, -1, 0);
-
-        return latheGeometry;
+        const curve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(0.18, 3.0, 0.32),
+            new THREE.Vector3(0.0, 2.4, 0.38),
+            new THREE.Vector3(-0.18, 1.6, 0.42),
+            new THREE.Vector3(-0.22, 0.8, 0.44),
+            new THREE.Vector3(-0.15, 0.0, 0.42),
+            new THREE.Vector3(0.0, -0.6, 0.36),
+            new THREE.Vector3(0.2, -1.2, 0.28),
+        ], false, 'catmullrom', 0.5);
+        return new THREE.TubeGeometry(curve, 120, 0.018, 12, false);
     }, []);
 
-    // Add vertex colors for stress visualization
-    const material = useMemo(
-        () =>
-            new THREE.MeshStandardMaterial({
-                vertexColors: true,
-                roughness: showStress ? 0.42 : 0.56,
-                metalness: showStress ? 0.08 : 0.12,
-                wireframe,
-                emissive: new THREE.Color(showStress ? '#260808' : '#1a0b05'),
-                emissiveIntensity: showStress ? 0.22 : 0.12,
-            }),
-        [showStress, wireframe]
-    );
-
-    // Apply procedural region colors. Stress mode uses full green->yellow->red scale,
-    // default mode starts warmer so it resembles clinical heat overlays.
-    useMemo(() => {
-        if (geometry) {
-            const colors = [];
-            const count = geometry.attributes.position.count;
-
-            for (let i = 0; i < count; i++) {
-                const y = geometry.attributes.position.getY(i);
-                const normalized = THREE.MathUtils.clamp((y + 1.5) / 3, 0, 1);
-
-                let r: number;
-                let g: number;
-                let b: number;
-
-                if (showStress) {
-                    if (normalized < 0.5) {
-                        r = normalized * 2;
-                        g = 1;
-                        b = 0;
-                    } else {
-                        r = 1;
-                        g = 1 - (normalized - 0.5) * 2;
-                        b = 0;
-                    }
-                } else {
-                    const warm = THREE.MathUtils.lerp(0.15, 1, normalized);
-                    r = 1;
-                    g = THREE.MathUtils.lerp(0.58, 0.83, 1 - warm);
-                    b = THREE.MathUtils.lerp(0.05, 0.12, 1 - warm);
-                }
-
-                colors.push(r, g, b);
-            }
-
-            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-        }
-    }, [geometry, showStress]);
-
-    // Gentle rotation
-    useFrame((state) => {
-        if (meshRef.current) {
-            meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.2) * 0.1;
-        }
-    });
+    const dotGeometry = useMemo(() => new THREE.SphereGeometry(0.028, 8, 8), []);
+    const dotPositions = useMemo(() => {
+        const curve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(0.18, 3.0, 0.32),
+            new THREE.Vector3(0.0, 2.4, 0.38),
+            new THREE.Vector3(-0.18, 1.6, 0.42),
+            new THREE.Vector3(-0.22, 0.8, 0.44),
+            new THREE.Vector3(-0.15, 0.0, 0.42),
+            new THREE.Vector3(0.0, -0.6, 0.36),
+            new THREE.Vector3(0.2, -1.2, 0.28),
+        ], false, 'catmullrom', 0.5);
+        return curve.getPoints(18);
+    }, []);
 
     return (
-        <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.3}>
-            <mesh ref={meshRef} geometry={geometry} material={material} castShadow receiveShadow>
-                {/* Region labels */}
-                <Html position={[0, 0.8, 0.5]} center>
-                    <div className="whitespace-nowrap border border-white/20 bg-black/80 px-2 py-1 text-[10px] uppercase tracking-[0.1em] text-[#f5e7d0]">
-                        Fundus
-                    </div>
-                </Html>
-                <Html position={[0, 0, 0.7]} center>
-                    <div className="whitespace-nowrap border border-white/20 bg-black/80 px-2 py-1 text-[10px] uppercase tracking-[0.1em] text-[#f5e7d0]">
-                        Body
-                    </div>
-                </Html>
-                <Html position={[0, -0.8, 0.5]} center>
-                    <div className="whitespace-nowrap border border-white/20 bg-black/80 px-2 py-1 text-[10px] uppercase tracking-[0.1em] text-[#f5e7d0]">
-                        Antrum
-                    </div>
-                </Html>
-                <Html position={[0.45, -0.35, 0.35]} center>
-                    <div className="whitespace-nowrap border border-white/20 bg-black/80 px-2 py-1 text-[10px] uppercase tracking-[0.1em] text-[#f5e7d0]">
-                        Pylorus
-                    </div>
-                </Html>
-                <Html position={[-0.3, 1.1, 0.4]} center>
-                    <div className="whitespace-nowrap border border-white/20 bg-black/80 px-2 py-1 text-[10px] uppercase tracking-[0.1em] text-[#f5e7d0]">
-                        EG Junction
-                    </div>
-                </Html>
+        <group position={[-0.1, -0.05, 0]}>
+            <mesh geometry={geometry}>
+                <meshBasicMaterial color="#7cb8ff" transparent opacity={0.7} />
             </mesh>
-        </Float>
+            {dotPositions.map((pos, i) => (
+                <mesh key={i} geometry={dotGeometry} position={pos}>
+                    <meshBasicMaterial color="#a8d4ff" />
+                </mesh>
+            ))}
+        </group>
     );
 }
 
-function StapleLineMesh({ position = [0, 0, 0.5] }: { position?: [number, number, number] }) {
-    const geometry = useMemo(() => {
-        const curve = new THREE.QuadraticBezierCurve3(
-            new THREE.Vector3(-0.5, 0, 0),
-            new THREE.Vector3(0, 0.1, 0.1),
-            new THREE.Vector3(0.5, 0, 0)
-        );
-        return new THREE.TubeGeometry(curve, 20, 0.02, 8, false);
+function BypassStapleLine() {
+    const pouchLine = useMemo(() => {
+        const curve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(0.15, 2.8, 0.32),
+            new THREE.Vector3(-0.05, 2.3, 0.38),
+            new THREE.Vector3(-0.15, 1.9, 0.4),
+        ], false, 'catmullrom', 0.5);
+        return new THREE.TubeGeometry(curve, 60, 0.02, 12, false);
+    }, []);
+
+    const rouxLimb = useMemo(() => {
+        const curve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-0.15, 1.9, 0.4),
+            new THREE.Vector3(0.4, 1.6, 0.3),
+            new THREE.Vector3(1.0, 1.2, 0.1),
+            new THREE.Vector3(1.4, 0.6, -0.05),
+        ], false, 'catmullrom', 0.5);
+        return new THREE.TubeGeometry(curve, 80, 0.015, 12, false);
     }, []);
 
     return (
-        <mesh geometry={geometry} position={position}>
-            <meshStandardMaterial color="#60a5fa" emissive="#3b82f6" emissiveIntensity={0.5} />
-        </mesh>
+        <group position={[-0.1, -0.05, 0]}>
+            <mesh geometry={pouchLine}>
+                <meshBasicMaterial color="#f59e0b" transparent opacity={0.8} />
+            </mesh>
+            <mesh geometry={rouxLimb}>
+                <meshBasicMaterial color="#34d399" transparent opacity={0.6} />
+            </mesh>
+        </group>
     );
 }
+
+/* ───────────────────────────────────────────────
+   Surgical stapler instrument (proper shape)
+   ─────────────────────────────────────────────── */
+
+function StaplerInstrument({ staplerColor }: { staplerColor: string }) {
+    return (
+        <group position={[1.6, -0.5, 0.15]} rotation={[0.1, -0.3, 0.35]} scale={0.85}>
+            {/* Main shaft */}
+            <mesh castShadow>
+                <cylinderGeometry args={[0.04, 0.04, 1.8, 12]} />
+                <meshStandardMaterial color="#2a2d33" metalness={0.85} roughness={0.2} />
+            </mesh>
+            {/* Jaw top */}
+            <mesh position={[0, 0.95, 0]} castShadow>
+                <boxGeometry args={[0.12, 0.22, 0.08]} />
+                <meshStandardMaterial color={staplerColor} metalness={0.6} roughness={0.3} />
+            </mesh>
+            {/* Jaw bottom */}
+            <mesh position={[0, 0.75, 0]} castShadow>
+                <boxGeometry args={[0.12, 0.18, 0.08]} />
+                <meshStandardMaterial color="#3a3d44" metalness={0.75} roughness={0.25} />
+            </mesh>
+            {/* Handle grip */}
+            <mesh position={[0, -0.7, 0.08]} rotation={[0.3, 0, 0]} castShadow>
+                <boxGeometry args={[0.08, 0.5, 0.06]} />
+                <meshStandardMaterial color="#1a1c20" metalness={0.5} roughness={0.5} />
+            </mesh>
+            {/* Trigger */}
+            <mesh position={[0, -0.5, 0.14]} rotation={[0.5, 0, 0]} castShadow>
+                <boxGeometry args={[0.04, 0.25, 0.03]} />
+                <meshStandardMaterial color="#555" metalness={0.7} roughness={0.3} />
+            </mesh>
+        </group>
+    );
+}
+
+/* ───────────────────────────────────────────────
+   Viewer
+   ─────────────────────────────────────────────── */
 
 interface StomachViewerProps {
     showStress?: boolean;
+    showThickness?: boolean;
     showStapleLine?: boolean;
     wireframe?: boolean;
     stressData?: number[];
+    highlightedRegion?: number | null;
+    onRegionClick?: (id: number) => void;
+    surgeryType?: string;
+    staplerColor?: string;
     className?: string;
 }
 
 export default function StomachViewer({
     showStress = false,
+    showThickness = false,
     showStapleLine = false,
     wireframe = false,
     stressData,
+    highlightedRegion = null,
+    onRegionClick,
+    surgeryType = 'sleeve',
+    staplerColor = '#60a5fa',
     className = '',
 }: StomachViewerProps) {
     return (
-        <div className={`viewer-container ${className}`}>
+        <div className={`viewer-container ${className}`} style={{ width: '100%', height: '100%' }}>
             <Canvas
-                camera={{ position: [0.2, 0.3, 5.2], fov: 42 }}
+                camera={{ position: [0, 0, 5.5], fov: 40 }}
                 shadows
                 gl={{ antialias: true }}
             >
-                <color attach="background" args={['#0a0a0a']} />
+                <color attach="background" args={['#0a0b0e']} />
 
-                {/* Lighting */}
-                <ambientLight intensity={0.45} />
-                <directionalLight
-                    position={[5, 4, 5]}
-                    intensity={1.15}
-                    castShadow
-                    shadow-mapSize-width={1024}
-                    shadow-mapSize-height={1024}
-                />
-                <pointLight position={[-5, 5, -5]} intensity={0.25} color="#3b82f6" />
-                <pointLight position={[1, -2, 3]} intensity={0.45} color="#f97316" />
+                <ambientLight intensity={0.18} />
+                <hemisphereLight color="#f4c9c3" groundColor="#1b1212" intensity={0.34} />
+                <directionalLight position={[4.5, 6, 5.5]} intensity={1.4} color="#ffe1dc" castShadow />
+                <pointLight position={[-3.8, 2.2, -3]} intensity={0.36} color="#7fc3ff" />
+                <pointLight position={[2.5, -1.4, 3.2]} intensity={0.68} color="#ff8f8f" />
+                <spotLight position={[0.6, 4.4, 3.4]} angle={0.52} penumbra={0.35} intensity={0.88} color="#ffd4ce" />
 
-                {/* Controls */}
                 <OrbitControls
                     enablePan={true}
                     enableZoom={true}
                     enableRotate={true}
-                    minDistance={2}
-                    maxDistance={10}
+                    minDistance={2.5}
+                    maxDistance={9}
                 />
 
-                {/* Environment */}
-                <Environment preset="night" />
-
-                {/* Models */}
                 <Suspense fallback={null}>
-                    <StomachModel
+                    <AnatomicalStomachModel
                         showStress={showStress}
+                        showThickness={showThickness}
                         wireframe={wireframe}
                         stressData={stressData}
+                        highlightedRegion={highlightedRegion}
+                        onRegionClick={onRegionClick}
+                        surgeryType={surgeryType}
                     />
-                    {showStapleLine && <StapleLineMesh />}
+                    {showStapleLine && surgeryType === 'sleeve' && <SleeveStapleLine />}
+                    {showStapleLine && surgeryType === 'bypass' && <BypassStapleLine />}
+                    {showStapleLine && surgeryType === 'custom' && <SleeveStapleLine />}
+                    {showStapleLine && <StaplerInstrument staplerColor={staplerColor} />}
                 </Suspense>
-
-                {/* Grid helper */}
-                <gridHelper args={[12, 12, '#17315a', '#17315a']} position={[0, -2, 0]} />
             </Canvas>
         </div>
     );
