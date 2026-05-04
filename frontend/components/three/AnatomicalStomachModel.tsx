@@ -47,7 +47,7 @@ const REGION_DEFINITIONS: RegionDefinition[] = [
         label: 'Fundus',
         start: 0.11,
         end: 0.34,
-        labelPosition: [-1.55, 1.8, 0.4],
+        labelPosition: [-1.7, 1.8, 0.5],
         badgeClassName: 'border border-[#6a3b3b] bg-[#351111]/90 text-[#f1b9b9]'
     },
     {
@@ -55,7 +55,7 @@ const REGION_DEFINITIONS: RegionDefinition[] = [
         label: 'Body',
         start: 0.34,
         end: 0.67,
-        labelPosition: [-1.5, 0.0, 0.5],
+        labelPosition: [-1.7, -0.1, 0.55],
         badgeClassName: 'border border-[#7d3442] bg-[#3f1018]/90 text-[#f2c0c7]'
     },
     {
@@ -63,7 +63,7 @@ const REGION_DEFINITIONS: RegionDefinition[] = [
         label: 'Antrum',
         start: 0.67,
         end: 0.88,
-        labelPosition: [0.3, -2.1, 0.3],
+        labelPosition: [0.1, -2.3, 0.3],
         badgeClassName: 'border border-white/30 bg-black/80 text-[#d4d4d4]'
     },
     {
@@ -147,44 +147,47 @@ function getRegionId(t: number): StomachRegionId {
 function buildCenterline() {
     return new THREE.CatmullRomCurve3(
         [
-            new THREE.Vector3(0.1, 3.25, 0.0),
-            new THREE.Vector3(0.04, 2.75, 0.02),
-            new THREE.Vector3(-0.1, 2.25, 0.06),
-            new THREE.Vector3(-0.36, 1.85, 0.14),
-            new THREE.Vector3(-0.68, 1.45, 0.24),
-            new THREE.Vector3(-0.92, 0.95, 0.3),
-            new THREE.Vector3(-1.05, 0.25, 0.31),
-            new THREE.Vector3(-1.0, -0.42, 0.26),
-            new THREE.Vector3(-0.76, -1.0, 0.19),
-            new THREE.Vector3(-0.38, -1.48, 0.12),
-            new THREE.Vector3(0.1, -1.82, 0.04),
-            new THREE.Vector3(0.64, -1.94, -0.02),
-            new THREE.Vector3(1.1, -1.8, -0.08),
-            new THREE.Vector3(1.42, -1.52, -0.1)
+            new THREE.Vector3(0.08, 3.3, 0.0),
+            new THREE.Vector3(0.02, 2.8, 0.02),
+            new THREE.Vector3(-0.15, 2.3, 0.06),
+            new THREE.Vector3(-0.42, 1.9, 0.14),
+            new THREE.Vector3(-0.78, 1.5, 0.24),
+            new THREE.Vector3(-1.05, 0.95, 0.3),
+            new THREE.Vector3(-1.2, 0.2, 0.32),
+            new THREE.Vector3(-1.15, -0.5, 0.28),
+            new THREE.Vector3(-0.9, -1.1, 0.2),
+            new THREE.Vector3(-0.5, -1.6, 0.12),
+            new THREE.Vector3(0.05, -1.95, 0.04),
+            new THREE.Vector3(0.6, -2.05, -0.02),
+            new THREE.Vector3(1.1, -1.88, -0.08),
+            new THREE.Vector3(1.42, -1.55, -0.1)
         ],
         false,
         'catmullrom',
-        0.4
+        0.35
     );
 }
 
 function outerRadiusAt(t: number) {
     const egTransition = smoothstep(0.0, 0.12, t);
-    const fundusBulge = Math.exp(-Math.pow((t - 0.2) / 0.14, 2));
-    const bodyBulge = Math.exp(-Math.pow((t - 0.45) / 0.2, 2));
-    const antrumBulge = Math.exp(-Math.pow((t - 0.77) / 0.11, 2));
-    const pylorusNarrow = Math.exp(-Math.pow((t - 0.94) / 0.045, 2));
+    const cardiacNotch = Math.exp(-Math.pow((t - 0.1) / 0.04, 2));
+    const fundusBulge = Math.exp(-Math.pow((t - 0.22) / 0.13, 2));
+    const bodyBulge = Math.exp(-Math.pow((t - 0.48) / 0.22, 2));
+    const antrumTaper = smoothstep(0.65, 0.9, t);
+    const pylorusNarrow = Math.exp(-Math.pow((t - 0.95) / 0.04, 2));
 
-    return 0.23 + egTransition * 0.13 + fundusBulge * 0.68 + bodyBulge * 0.45 + antrumBulge * 0.2 - pylorusNarrow * 0.14;
+    return 0.22 + egTransition * 0.14 - cardiacNotch * 0.08
+        + fundusBulge * 0.82 + bodyBulge * 0.55
+        - antrumTaper * 0.28 - pylorusNarrow * 0.18;
 }
 
 function wallThicknessAt(t: number) {
-    const fundus = Math.exp(-Math.pow((t - 0.18) / 0.16, 2));
-    const body = Math.exp(-Math.pow((t - 0.46) / 0.22, 2));
-    const antrum = Math.exp(-Math.pow((t - 0.76) / 0.12, 2));
-    const pylorus = Math.exp(-Math.pow((t - 0.94) / 0.06, 2));
+    const fundus = Math.exp(-Math.pow((t - 0.2) / 0.14, 2));
+    const body = Math.exp(-Math.pow((t - 0.48) / 0.2, 2));
+    const antrum = Math.exp(-Math.pow((t - 0.78) / 0.1, 2));
+    const pylorus = Math.exp(-Math.pow((t - 0.95) / 0.05, 2));
 
-    return 0.058 + fundus * 0.016 + body * 0.03 + antrum * 0.072 + pylorus * 0.088;
+    return 0.055 + fundus * 0.02 + body * 0.04 + antrum * 0.085 + pylorus * 0.1;
 }
 
 function innerRugaeDepthAt(t: number, theta: number) {
@@ -194,26 +197,29 @@ function innerRugaeDepthAt(t: number, theta: number) {
 }
 
 function colorFromStress(value: number) {
-    const normalized = clamp01(value);
+    const n = clamp01(value);
     const color = new THREE.Color();
-
-    if (normalized < 0.5) {
-        color.lerpColors(new THREE.Color('#39d07a'), new THREE.Color('#f0c24b'), normalized * 2);
+    if (n < 0.25) {
+        color.lerpColors(new THREE.Color('#0ea5e9'), new THREE.Color('#22c55e'), n * 4);
+    } else if (n < 0.5) {
+        color.lerpColors(new THREE.Color('#22c55e'), new THREE.Color('#eab308'), (n - 0.25) * 4);
+    } else if (n < 0.75) {
+        color.lerpColors(new THREE.Color('#eab308'), new THREE.Color('#f97316'), (n - 0.5) * 4);
     } else {
-        color.lerpColors(new THREE.Color('#f0c24b'), new THREE.Color('#e95555'), (normalized - 0.5) * 2);
+        color.lerpColors(new THREE.Color('#f97316'), new THREE.Color('#dc2626'), (n - 0.75) * 4);
     }
-
     return color;
 }
 
 function colorFromThickness(wallThickness: number) {
-    // Thin = blue, medium = cyan/green, thick = orange
-    const normalized = clamp01((wallThickness - 0.05) / 0.1);
+    const n = clamp01((wallThickness - 0.045) / 0.12);
     const color = new THREE.Color();
-    if (normalized < 0.5) {
-        color.lerpColors(new THREE.Color('#3b82f6'), new THREE.Color('#06b6d4'), normalized * 2);
+    if (n < 0.33) {
+        color.lerpColors(new THREE.Color('#2563eb'), new THREE.Color('#06b6d4'), n * 3);
+    } else if (n < 0.66) {
+        color.lerpColors(new THREE.Color('#06b6d4'), new THREE.Color('#16a34a'), (n - 0.33) * 3);
     } else {
-        color.lerpColors(new THREE.Color('#06b6d4'), new THREE.Color('#f97316'), (normalized - 0.5) * 2);
+        color.lerpColors(new THREE.Color('#16a34a'), new THREE.Color('#ea580c'), (n - 0.66) * 3);
     }
     return color;
 }
@@ -274,8 +280,8 @@ function createLayerGeometry(layer: LayerKind, showStress: boolean, showThicknes
     const radialSegments = 54;
     const frames = curve.computeFrenetFrames(tubularSegments, false);
 
-    const arcStart = -Math.PI * 0.05;
-    const arcLength = Math.PI * 1.45;
+    const arcStart = -Math.PI * 0.12;
+    const arcLength = Math.PI * 1.72;
 
     const positions: number[] = [];
     const uvs: number[] = [];
@@ -309,10 +315,12 @@ function createLayerGeometry(layer: LayerKind, showStress: boolean, showThicknes
                 .add(new THREE.Vector3().copy(binormal).multiplyScalar(Math.sin(theta)))
                 .normalize();
 
-            const greaterCurvatureBias = 1 + 0.28 * smoothstep(0.1, 0.62, t) * Math.max(0, Math.cos(theta - 0.2));
-            const antralCompression = 1 - 0.16 * smoothstep(0.68, 0.95, t);
+            const greaterCurvatureBias = 1 + 0.42 * smoothstep(0.1, 0.6, t) * (1 - smoothstep(0.7, 0.95, t)) * Math.max(0, Math.cos(theta - 0.15));
+            const lesserCurvatureFlat = 1 - 0.12 * smoothstep(0.15, 0.55, t) * Math.max(0, Math.cos(theta - Math.PI));
+            const fundusDome = 1 + 0.22 * Math.exp(-Math.pow((t - 0.2) / 0.12, 2)) * Math.max(0, -Math.sin(theta));
+            const antralCompression = 1 - 0.2 * smoothstep(0.68, 0.95, t);
             const layerRadius = radiusForLayer(layer, outerRadius, wallThickness, t, theta);
-            const finalRadius = layerRadius * greaterCurvatureBias * antralCompression;
+            const finalRadius = layerRadius * greaterCurvatureBias * lesserCurvatureFlat * fundusDome * antralCompression;
 
             const point = center.clone().add(ringVector.multiplyScalar(finalRadius));
 
@@ -326,8 +334,9 @@ function createLayerGeometry(layer: LayerKind, showStress: boolean, showThicknes
                 colors.push(thickColor.r, thickColor.g, thickColor.b);
             } else if (showStress) {
                 const regionStress = stressFallback[regionId] ?? stressFallback[stressFallback.length - 1];
-                const stressBoost = layer === 'mucosa' ? 0.92 : layer === 'serosa' ? 1 : 0.84;
-                const shellColor = colorFromStress(regionStress * stressBoost);
+                const localVar = 0.06 * Math.sin(t * 40 + theta * 5) + 0.04 * Math.cos(t * 18 - theta * 8);
+                const stressBoost = layer === 'mucosa' ? 0.95 : layer === 'serosa' ? 1.05 : 0.88;
+                const shellColor = colorFromStress(clamp01(regionStress * stressBoost + localVar));
                 colors.push(shellColor.r, shellColor.g, shellColor.b);
             } else {
                 const tissue = layerColor(layer, regionId, t, theta, wallThickness);
@@ -417,12 +426,13 @@ function LayerMesh({
             {wireframe && (
                 <mesh geometry={geometry}>
                     <meshBasicMaterial
-                        color={isSerosa ? '#ffdad6' : isMucosa ? '#f1a1a6' : '#e28686'}
+                        color={showStress ? '#ffffff' : isSerosa ? '#ffdad6' : isMucosa ? '#f1a1a6' : '#e28686'}
                         wireframe
                         transparent
-                        opacity={showStress ? 0.12 : 0.16}
+                        opacity={showStress ? 0.55 : 0.16}
                         depthWrite={false}
                         side={THREE.DoubleSide}
+                        vertexColors={showStress}
                     />
                 </mesh>
             )}
